@@ -78,6 +78,33 @@ function getSecrets(secrets) {
   return secrets;
 }
 
+function getPlugins(plugins) {
+  let pluginList;
+  if (typeof plugins === "string") {
+    try {
+      pluginList = JSON.parse(plugins);
+    } catch (err) {
+      // Assume it's a single string.
+      pluginList = [plugins];
+    }
+  } else {
+    for(var plugin in plugins) {
+    }
+    pluginList = plugins;
+  }
+  if (!Array.isArray(pluginList)) {
+    return [];
+  }
+  return pluginList.map(e => {
+    if(typeof e === "string") {
+      return {url: e};
+    }
+    if(typeof e === "object") {
+      return e;
+    }
+  }).filter(f => !!f);
+}
+
 function getValueFiles(files) {
   let fileList;
   if (typeof files === "string") {
@@ -184,6 +211,32 @@ async function addRepo(helm) {
 }
 
 /*
+ * Install helm plugins if they don't already exist
+ */
+async function installPlugins(helm) {
+  const plugins = getPlugins(getInput("plugins"));
+
+  for(var plugin in plugins) {
+    core.debug(`plugin: ${plugin}`)
+
+    let args = [
+      "plugin",
+      "install",
+      plugin.url
+    ];
+
+    if(plugin.version) {
+      args.push(`--version ${plugin.version}`);
+    }
+
+    let error = await exec.exec(helm, args);
+    if(error) {
+      return error;
+    }
+  }
+}
+
+/*
  * Deploy the release
  */
 async function deploy(helm) {
@@ -285,7 +338,7 @@ async function deploy(helm) {
  * Run executes the helm deployment.
  */
 async function run() {
-  const commands = [addRepo, deploy]
+  const commands = [addRepo, installPlugins, deploy]
 
   try {
     await status("pending");
