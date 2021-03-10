@@ -213,16 +213,25 @@ async function installPlugins(helm) {
     // so we clean up manually here
     
     let clone_dir = pluginDir + plugin.url.trim().replace(/\/+$/g, '').replace(/[:/]+/g, '-');
-    let exists = false;
     try {
       fs.accessSync(clone_dir, fs.constants.F_OK);
       core.debug(`${clone_dir} 'exists'}`);
-      exists = true;
     }
     catch(e) {
       core.debug(`${clone_dir} 'does not exist'}`);
     }
-    if(exists) fs.rmSync(clone_dir, { recursive: true});
+
+    let errOut = '';
+    const options = {
+      ignoreReturnCode: true,
+      listener: {
+        stdout: (buffer) => {
+          errout += buffer;
+        }
+      }
+    };
+    let ec = await exec.exec('rm', ['-rf', clone_dir], options);
+    core.error(`ec: ${ec}: ${errOut}`);
   }
 }
 
