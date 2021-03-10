@@ -3,10 +3,8 @@ const github = require("@actions/github");
 const exec = require("@actions/exec");
 const fs = require("fs");
 const util = require("util");
-const Mustache = require("mustache");
 
 const writeFile = util.promisify(fs.writeFile);
-const readFile = util.promisify(fs.readFile);
 const required = { required: true };
 
 /**
@@ -186,6 +184,19 @@ async function addRepo(helm) {
 async function installPlugins(helm) {
   const plugins = getPlugins(getInput("plugins"));
 
+  let myOutput = '';
+  const options = {
+    listeners = {
+      stdout: (data) => {
+        myOutput += data.toString();
+      },
+    }
+  }
+
+  await exec.exec('ls', ['-la', '/root/.helm/helm/plugins'], options)
+  core.debug(myOutput);
+
+
   for(let plugin of plugins) {
     if(!plugin.url || typeof(plugin.url) == 'undefined') { 
       core.error('plugin.url could not be found')
@@ -208,6 +219,10 @@ async function installPlugins(helm) {
     if(error) {
       return error;
     }
+
+    myOutput = '';
+    await exec.exec('ls', ['-la', '/root/.helm/helm/plugins'], options)
+    core.debug(myOutput);
   }
 }
 
