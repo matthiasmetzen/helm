@@ -7,6 +7,8 @@ const util = require("util");
 const writeFile = util.promisify(fs.writeFile);
 const required = { required: true };
 
+const pluginDir = '/root/.helm/helm/plugins/';
+
 /**
  * Status marks the deployment status. Only activates if token is set as an
  * input to the job.
@@ -209,11 +211,14 @@ async function installPlugins(helm) {
 
     // for some reason helm may leave some excess folders in the plugin directory
     // so we clean up manually here
-    try {
-      let clone_dir = plugin.url.trim().replace(/\/+$/g, '').replace(/[:/]+/g, '-');
-      fs.rmSync('/root/.helm/helm/plugins/' + clone_dir, { recursive: true })
-    } catch(e) {}
-
+    
+    let clone_dir = pluginDir + plugin.url.trim().replace(/\/+$/g, '').replace(/[:/]+/g, '-');
+    fs.access(clone_dir, constants.F_OK, (err) => {
+      console.log(`${clone_dir} ${err ? 'does not exist' : 'exists'}`);
+      if(!err) {
+        fs.rmSync(clone_dir, { recursive: true})
+      }
+    });
   }
 }
 
