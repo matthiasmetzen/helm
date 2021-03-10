@@ -213,7 +213,7 @@ async function installPlugins(helm) {
     // so we clean up manually here
     
     let clone_dir = pluginDir + plugin.url.trim().replace(/\/+$/g, '').replace(/[:/]+/g, '-');
-    fs.access(clone_dir, constants.F_OK, (err) => {
+    fs.access(clone_dir, fs.constants.F_OK, (err) => {
       console.log(`${clone_dir} ${err ? 'does not exist' : 'exists'}`);
       if(!err) {
         fs.rmSync(clone_dir, { recursive: true})
