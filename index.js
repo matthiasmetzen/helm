@@ -88,8 +88,6 @@ function getPlugins(plugins) {
       pluginList = [plugins];
     }
   } else {
-    for(var plugin in plugins) {
-    }
     pluginList = plugins;
   }
   if (!Array.isArray(pluginList)) {
@@ -102,7 +100,7 @@ function getPlugins(plugins) {
     if(typeof e === "object") {
       return e;
     }
-  }).filter(f => !!f);
+  }).filter(f => !!f || typeof(f.url) == 'undefined');
 }
 
 function getValueFiles(files) {
@@ -216,7 +214,12 @@ async function addRepo(helm) {
 async function installPlugins(helm) {
   const plugins = getPlugins(getInput("plugins"));
 
-  for(var plugin in plugins) {
+  for(let plugin of plugins) {
+    if(!plugin.url || typeof(plugin.url) == 'undefined') { 
+      core.error('plugin.url could not be found')
+      continue;
+    }
+
     core.debug(`plugin: ${plugin}`)
 
     let args = [
