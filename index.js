@@ -301,7 +301,15 @@ async function deploy(helm) {
     });
   }
 
-  return exec.exec(helm, args);
+  let output = '';
+  const options = {
+    listener: {
+      stdout: buffer => output += buffer
+    }
+  }
+  let code = exec.exec(helm, args, options);
+  core.debug(output);
+  return code;
 }
 
 /**
