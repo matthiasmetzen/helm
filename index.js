@@ -211,27 +211,8 @@ async function installPlugins(helm) {
 
     // for some reason helm may leave some excess folders in the plugin directory
     // so we clean up manually here
-    
     let clone_dir = pluginDir + plugin.url.trim().replace(/\/+$/g, '').replace(/[:/]+/g, '-');
-    try {
-      fs.accessSync(clone_dir, fs.constants.F_OK);
-      core.debug(`${clone_dir} 'exists'}`);
-    }
-    catch(e) {
-      core.debug(`${clone_dir} 'does not exist'}`);
-    }
-
-    let errOut = '';
-    const options = {
-      ignoreReturnCode: true,
-      listener: {
-        stdout: (buffer) => {
-          errout += buffer;
-        }
-      }
-    };
-    let ec = await exec.exec('rm', ['-rf', clone_dir], options);
-    core.error(`ec: ${ec}: ${errOut}`);
+    await exec.exec('rm', ['-rf', clone_dir], {ignoreReturnCode: true});
   }
 }
 
