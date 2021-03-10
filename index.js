@@ -186,10 +186,10 @@ async function installPlugins(helm) {
 
   let myOutput = '';
   const options = {
-    listeners = {
+    listeners: {
       stdout: (data) => {
         myOutput += data.toString();
-      },
+      }
     }
   }
 
