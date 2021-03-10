@@ -184,20 +184,6 @@ async function addRepo(helm) {
 async function installPlugins(helm) {
   const plugins = getPlugins(getInput("plugins"));
 
-  let myOutput = '';
-  const options = {
-    ignoreReturnCode: true,
-    listeners: {
-      stdout: (data) => {
-        myOutput += data.toString();
-      }
-    }
-  }
-
-  await exec.exec('ls', ['-la', '/root/.helm/helm/plugins'], options)
-  core.debug(myOutput);
-
-
   for(let plugin of plugins) {
     if(!plugin.url || typeof(plugin.url) == 'undefined') { 
       core.error('plugin.url could not be found')
@@ -221,9 +207,13 @@ async function installPlugins(helm) {
       return error;
     }
 
-    myOutput = '';
-    await exec.exec('ls', ['-la', '/root/.helm/helm/plugins'], options)
-    core.debug(myOutput);
+    // for some reason helm may leave some excess folders in the plugin directory
+    // so we clean up manually here
+    try {
+      let clone_dir = plugin.url.trim().replace(/\/+$/g, '').replace(/[:/]+/g, '-');
+      fs.rmSync('/root/.helm/helm/plugins/' + clone_dir, { recursive: true })
+    } catch(e) {}
+
   }
 }
 
