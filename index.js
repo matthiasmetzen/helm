@@ -58,24 +58,14 @@ function chartName(name) {
 }
 
 function getValues(values) {
-  if (!values) {
-    return "{}";
-  }
-  if (typeof values === "object") {
-    return JSON.stringify(values);
-  }
-  return values;
-}
-
-function getSecrets(secrets) {
-  if (typeof secrets === "string") {
+  if (typeof values === "string") {
     try {
-      return JSON.parse(secrets);
+      return JSON.parse(values);
     } catch (err) {
-      return secrets;
+      return values;
     }
   }
-  return secrets;
+  return values;
 }
 
 function getPlugins(plugins) {
@@ -136,24 +126,6 @@ function getInput(name, options) {
     throw new Error(`Input required and not supplied: ${name}`);
   }
   return val;
-}
-
-/**
- * Render files renders data into the list of provided files.
- * @param {Array<string>} files
- * @param {any} data
- */
-function renderFiles(files, data) {
-  core.debug(
-    `rendering value files [${files.join(",")}] with: ${JSON.stringify(data)}`
-  );
-  const tags = ["${{", "}}"];
-  const promises = files.map(async file => {
-    const content = await readFile(file, { encoding: "utf8" });
-    const rendered = Mustache.render(content, data, {}, tags);
-    await writeFile(file, rendered);
-  });
-  return Promise.all(promises);
 }
 
 /**
@@ -258,7 +230,6 @@ async function deploy(helm) {
   const removeCanary = getInput("remove_canary");
   const timeout = getInput("timeout");
   const dryRun = core.getInput("dry-run");
-  const secrets = getSecrets(core.getInput("secrets"));
   const atomic = getInput("atomic") || true;
 
   core.debug(`param: track = "${track}"`);
@@ -267,11 +238,11 @@ async function deploy(helm) {
   core.debug(`param: namespace = "${namespace}"`);
   core.debug(`param: chart = "${chart}"`);
   core.debug(`param: chart_version = "${chartVersion}"`);
-  core.debug(`param: values = "${values}"`);
+  core.debug(`param: values = "${JSON.stringify(values)}"`);
   core.debug(`param: dryRun = "${dryRun}"`);
   core.debug(`param: task = "${task}"`);
   core.debug(`param: version = "${version}"`);
-  core.debug(`param: secrets = "${JSON.stringify(secrets)}"`);
+  //core.debug(`param: secrets = "${JSON.stringify(secrets)}"`);
   core.debug(`param: valueFiles = "${JSON.stringify(valueFiles)}"`);
   core.debug(`param: removeCanary = ${removeCanary}`);
   core.debug(`param: timeout = "${timeout}"`);
@@ -293,9 +264,8 @@ async function deploy(helm) {
   if (chartVersion) args.push(`--version=${chartVersion}`);
   if (timeout) args.push(`--timeout=${timeout}`);
 
-  valueFiles.forEach(f => args.push(`--values=${f}`));
-
-  args.push("--values=./values.yml");
+  valueFiles.forEach(f => args.push(`-f ${f}`));
+  Object.entries(values).forEach(([k,v]) => args.push(`--set ${k}=${v}`))
 
   // Special behaviour is triggered if the track is labelled 'canary'. The
   // service and ingress resources are disabled. Access to the canary
@@ -309,15 +279,7 @@ async function deploy(helm) {
     args.push("--atomic");
   }
 
-  await writeFile("./values.yml", values);
-
   core.debug(`env: KUBECONFIG="${process.env.KUBECONFIG}"`);
-
-  // Render value files using github variables.
-  await renderFiles(valueFiles.concat(["./values.yml"]), {
-    secrets,
-    deployment: context.payload.deployment,
-  });
 
   // Remove the canary deployment before continuing.
   if (removeCanary) {
