@@ -186,6 +186,7 @@ async function installPlugins(helm) {
 
   let myOutput = '';
   const options = {
+    ignoreReturnCode: true,
     listeners: {
       stdout: (data) => {
         myOutput += data.toString();
